@@ -560,6 +560,8 @@ type Memory interface {
 
 	// WriteString writes the string to the underlying buffer at the offset or returns false if out of range.
 	WriteString(offset uint32, v string) bool
+
+	RawBuffer() []byte
 }
 
 // CustomSection contains the name and raw data of a custom section.

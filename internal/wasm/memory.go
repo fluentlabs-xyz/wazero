@@ -170,6 +170,10 @@ func (m *MemoryInstance) WriteString(offset uint32, val string) bool {
 	return true
 }
 
+func (m *MemoryInstance) RawBuffer() []uint8 {
+	return m.Buffer
+}
+
 // MemoryPagesToBytesNum converts the given pages into the number of bytes contained in these pages.
 func MemoryPagesToBytesNum(pages uint32) (bytesNum uint64) {
 	return uint64(pages) << MemoryPageSizeInBits

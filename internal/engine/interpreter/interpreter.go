@@ -87,6 +87,8 @@ type moduleEngine struct {
 	parentEngine *engine
 }
 
+type StateFn = func(pc uint64, op uint16)
+
 // callEngine holds context per moduleEngine.Call, and shared across all the
 // function calls originating from the same moduleEngine.Call execution.
 type callEngine struct {
@@ -101,10 +103,19 @@ type callEngine struct {
 	compiled *function
 	// source is the FunctionInstance from which compiled is created from.
 	source *wasm.FunctionInstance
+
+	// stateFn is used to trace WASM operations (for interpreter mode only)
+	stateFn StateFn
 }
 
 func (e *moduleEngine) newCallEngine(source *wasm.FunctionInstance, compiled *function) *callEngine {
-	return &callEngine{source: source, compiled: compiled}
+	return &callEngine{
+		source:   source,
+		compiled: compiled,
+		stateFn: func(pc uint64, op uint16) {
+			println(fmt.Sprintf("%d\t%s", pc, wazeroir.OperationKind(op).String()))
+		},
+	}
 }
 
 func (ce *callEngine) pushValue(v uint64) {
@@ -898,7 +909,7 @@ func (ce *callEngine) callNativeFunc(ctx context.Context, callCtx *wasm.CallCont
 	body := frame.f.parent.body
 	bodyLen := uint64(len(body))
 	for frame.pc < bodyLen {
-		op := body[frame.pc]
+		pc, op := frame.pc, body[frame.pc]
 		// TODO: add description of each operation/case
 		// on, for example, how many args are used,
 		// how the stack is modified, etc.
@@ -4145,6 +4156,11 @@ func (ce *callEngine) callNativeFunc(ctx context.Context, callCtx *wasm.CallCont
 			ce.pushValue(retLo)
 			ce.pushValue(retHi)
 			frame.pc++
+		}
+
+		// trace operation
+		if ce.stateFn != nil {
+			ce.stateFn(pc, uint16(op.kind))
 		}
 	}
 	ce.popFrame()
