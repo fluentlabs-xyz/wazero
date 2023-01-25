@@ -31,12 +31,21 @@ type engine struct {
 	enabledFeatures api.CoreFeatures
 	codes           map[wasm.ModuleID][]*code // guarded by mutex.
 	mux             sync.RWMutex
+	traceFunction   api.Tracer
 }
 
 func NewEngine(_ context.Context, enabledFeatures api.CoreFeatures, _ filecache.Cache) wasm.Engine {
 	return &engine{
 		enabledFeatures: enabledFeatures,
 		codes:           map[wasm.ModuleID][]*code{},
+	}
+}
+
+func NewEngineWithTracer(enabledFeatures api.CoreFeatures, traceFunction api.Tracer) wasm.Engine {
+	return &engine{
+		enabledFeatures: enabledFeatures,
+		codes:           map[wasm.ModuleID][]*code{},
+		traceFunction:   traceFunction,
 	}
 }
 
@@ -113,7 +122,9 @@ func (e *moduleEngine) newCallEngine(source *wasm.FunctionInstance, compiled *fu
 		source:   source,
 		compiled: compiled,
 		stateFn: func(pc uint64, op uint16) {
-			println(fmt.Sprintf("%d\t%s", pc, wazeroir.OperationKind(op).String()))
+			if e.parentEngine.traceFunction != nil {
+				e.parentEngine.traceFunction.LogState(pc, op)
+			}
 		},
 	}
 }
