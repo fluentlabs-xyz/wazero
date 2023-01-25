@@ -96,7 +96,7 @@ type moduleEngine struct {
 	parentEngine *engine
 }
 
-type StateFn = func(pc uint64, op uint16)
+type StateFn = func(pc uint64, op fmt.Stringer)
 
 // callEngine holds context per moduleEngine.Call, and shared across all the
 // function calls originating from the same moduleEngine.Call execution.
@@ -121,7 +121,7 @@ func (e *moduleEngine) newCallEngine(source *wasm.FunctionInstance, compiled *fu
 	return &callEngine{
 		source:   source,
 		compiled: compiled,
-		stateFn: func(pc uint64, op uint16) {
+		stateFn: func(pc uint64, op fmt.Stringer) {
 			if e.parentEngine.traceFunction != nil {
 				e.parentEngine.traceFunction.LogState(pc, op)
 			}
@@ -4171,7 +4171,7 @@ func (ce *callEngine) callNativeFunc(ctx context.Context, callCtx *wasm.CallCont
 
 		// trace operation
 		if ce.stateFn != nil {
-			ce.stateFn(pc, uint16(op.kind))
+			ce.stateFn(pc, op.kind)
 		}
 	}
 	ce.popFrame()
