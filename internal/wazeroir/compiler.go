@@ -217,6 +217,7 @@ type CompilationResult struct {
 
 	// Operations holds wazeroir operations compiled from Wasm instructions in a Wasm function.
 	Operations []Operation
+	OpCodes    []byte
 
 	// IROperationSourceOffsetsInWasmBinary is index-correlated with Operation and maps each operation to the corresponding source instruction's
 	// offset in the original WebAssembly binary.
@@ -3020,7 +3021,9 @@ func (c *compiler) emit(ops ...Operation) {
 					continue
 				}
 			}
+			opcode := c.body[c.currentOpPC]
 			c.result.Operations = append(c.result.Operations, op)
+			c.result.OpCodes = append(c.result.OpCodes, opcode)
 			if c.needSourceOffset {
 				c.result.IROperationSourceOffsetsInWasmBinary = append(c.result.IROperationSourceOffsetsInWasmBinary,
 					c.currentOpPC+c.bodyOffsetInCodeSection)

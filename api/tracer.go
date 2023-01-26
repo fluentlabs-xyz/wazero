@@ -1,7 +1,10 @@
 package api
 
-import "fmt"
+type OpCodeInfo interface {
+	String() string
+	Code() byte
+}
 
 type Tracer interface {
-	LogState(pc uint64, opcode fmt.Stringer)
+	LogState(pc uint64, opcode OpCodeInfo)
 }

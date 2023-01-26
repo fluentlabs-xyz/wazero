@@ -96,7 +96,7 @@ type moduleEngine struct {
 	parentEngine *engine
 }
 
-type StateFn = func(pc uint64, op fmt.Stringer)
+type StateFn = func(pc uint64, op api.OpCodeInfo)
 
 // callEngine holds context per moduleEngine.Call, and shared across all the
 // function calls originating from the same moduleEngine.Call execution.
@@ -121,7 +121,7 @@ func (e *moduleEngine) newCallEngine(source *wasm.FunctionInstance, compiled *fu
 	return &callEngine{
 		source:   source,
 		compiled: compiled,
-		stateFn: func(pc uint64, op fmt.Stringer) {
+		stateFn: func(pc uint64, op api.OpCodeInfo) {
 			if e.parentEngine.traceFunction != nil {
 				e.parentEngine.traceFunction.LogState(pc, op)
 			}
@@ -236,6 +236,15 @@ type interpreterOp struct {
 	us       []uint64
 	rs       []*wazeroir.InclusiveRange
 	sourcePC uint64
+	opcode   byte
+}
+
+func (i *interpreterOp) Code() byte {
+	return i.opcode
+}
+
+func (i *interpreterOp) String() string {
+	return i.kind.String()
 }
 
 // interpreter mode doesn't maintain call frames in the stack, so pass the zero size to the IR.
@@ -311,11 +320,15 @@ func (e *engine) NewModuleEngine(name string, module *wasm.Module, functions []w
 func (e *engine) lowerIR(ir *wazeroir.CompilationResult) (*code, error) {
 	hasSourcePCs := len(ir.IROperationSourceOffsetsInWasmBinary) > 0
 	ops := ir.Operations
+	opcodes := ir.OpCodes
+	if len(ops) != len(opcodes) {
+		panic("ops and codes len mismatch, its not possible")
+	}
 	ret := &code{}
 	labelAddress := map[string]uint64{}
 	onLabelAddressResolved := map[string][]func(addr uint64){}
 	for i, original := range ops {
-		op := &interpreterOp{kind: original.Kind()}
+		op := &interpreterOp{kind: original.Kind(), opcode: opcodes[i]}
 		if hasSourcePCs {
 			op.sourcePC = ir.IROperationSourceOffsetsInWasmBinary[i]
 		}
@@ -4171,7 +4184,7 @@ func (ce *callEngine) callNativeFunc(ctx context.Context, callCtx *wasm.CallCont
 
 		// trace operation
 		if ce.stateFn != nil {
-			ce.stateFn(pc, op.kind)
+			ce.stateFn(pc, op)
 		}
 	}
 	ce.popFrame()
