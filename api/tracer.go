@@ -6,5 +6,5 @@ type OpCodeInfo interface {
 }
 
 type Tracer interface {
-	LogState(pc uint64, opcode OpCodeInfo)
+	LogState(pc uint64, opcode OpCodeInfo, stack []uint64)
 }
