@@ -30,8 +30,9 @@ var callStackCeiling = 2000
 type engine struct {
 	enabledFeatures api.CoreFeatures
 	codes           map[wasm.ModuleID][]*code // guarded by mutex.
-	mux             sync.RWMutex
-	traceFunction   api.Tracer
+
+	mux    sync.RWMutex
+	tracer api.Tracer
 }
 
 func NewEngine(_ context.Context, enabledFeatures api.CoreFeatures, _ filecache.Cache) wasm.Engine {
@@ -45,7 +46,7 @@ func NewEngineWithTracer(enabledFeatures api.CoreFeatures, traceFunction api.Tra
 	return &engine{
 		enabledFeatures: enabledFeatures,
 		codes:           map[wasm.ModuleID][]*code{},
-		traceFunction:   traceFunction,
+		tracer:          traceFunction,
 	}
 }
 
@@ -113,19 +114,15 @@ type callEngine struct {
 	// source is the FunctionInstance from which compiled is created from.
 	source *wasm.FunctionInstance
 
-	// stateFn is used to trace WASM operations (for interpreter mode only)
-	stateFn StateFn
+	// tracer is used to trace WASM operations (for interpreter mode only)
+	tracer api.Tracer
 }
 
 func (e *moduleEngine) newCallEngine(source *wasm.FunctionInstance, compiled *function) *callEngine {
 	return &callEngine{
 		source:   source,
 		compiled: compiled,
-		stateFn: func(pc uint64, op api.OpCodeInfo, stack []uint64) {
-			if e.parentEngine.traceFunction != nil {
-				e.parentEngine.traceFunction.LogState(pc, op, stack)
-			}
-		},
+		tracer:   e.parentEngine.tracer,
 	}
 }
 
@@ -934,6 +931,12 @@ func (ce *callEngine) callNativeFunc(ctx context.Context, callCtx *wasm.CallCont
 	bodyLen := uint64(len(body))
 	for frame.pc < bodyLen {
 		pc, op := frame.pc, body[frame.pc]
+
+		// trace operation before execution
+		if ce.tracer != nil {
+			ce.tracer.BeforeState(pc, op, ce.stack)
+		}
+
 		// TODO: add description of each operation/case
 		// on, for example, how many args are used,
 		// how the stack is modified, etc.
@@ -4182,9 +4185,9 @@ func (ce *callEngine) callNativeFunc(ctx context.Context, callCtx *wasm.CallCont
 			frame.pc++
 		}
 
-		// trace operation
-		if ce.stateFn != nil {
-			ce.stateFn(pc, op, ce.stack)
+		// trace operation after execution
+		if ce.tracer != nil {
+			ce.tracer.AfterState(pc, op, ce.stack)
 		}
 	}
 	ce.popFrame()
