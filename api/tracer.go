@@ -3,6 +3,7 @@ package api
 type OpCodeInfo interface {
 	String() string
 	Code() byte
+	GetParams() []uint64
 }
 
 type Tracer interface {

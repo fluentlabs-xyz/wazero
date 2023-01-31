@@ -244,6 +244,10 @@ func (i *interpreterOp) String() string {
 	return i.kind.String()
 }
 
+func (i *interpreterOp) GetParams() []uint64 {
+	return i.us
+}
+
 // interpreter mode doesn't maintain call frames in the stack, so pass the zero size to the IR.
 const callFrameStackSize = 0
 
