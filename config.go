@@ -146,7 +146,6 @@ type runtimeConfig struct {
 	newEngine             newEngine
 	cache                 CompilationCache
 	storeCustomSections   bool
-	traceFunction         api.Tracer
 }
 
 // engineLessConfig helps avoid copy/pasting the wrong defaults.
@@ -200,7 +199,6 @@ func NewRuntimeConfigWithTracer(tracer api.Tracer) RuntimeConfig {
 	ret.newEngine = func(_ context.Context, enabledFeatures api.CoreFeatures, _ filecache.Cache) wasm.Engine {
 		return interpreter.NewEngineWithTracer(enabledFeatures, tracer)
 	}
-	ret.traceFunction = tracer
 	return ret
 }
 

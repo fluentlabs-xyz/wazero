@@ -285,3 +285,11 @@ func (m *MemoryInstance) writeUint64Le(offset uint32, v uint64) bool {
 	binary.LittleEndian.PutUint64(m.Buffer[offset:], v)
 	return true
 }
+
+func (m *MemoryInstance) GetMin() uint32 {
+	return m.Min
+}
+
+func (m *MemoryInstance) GetMax() uint32 {
+	return m.Max
+}

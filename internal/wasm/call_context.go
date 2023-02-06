@@ -72,7 +72,7 @@ func (m *CallContext) Name() string {
 }
 
 // WithMemory allows overriding memory without re-allocation when the result would be the same.
-func (m *CallContext) WithMemory(memory *MemoryInstance) *CallContext {
+func (m *CallContext) WithMemory(memory api.Memory) *CallContext {
 	if memory != nil && memory != m.memory { // only re-allocate if it will change the effective memory
 		return &CallContext{module: m.module, memory: memory, Sys: m.Sys, closed: m.closed}
 	}
@@ -143,7 +143,7 @@ func (m *CallContext) ExportedMemoryDefinitions() map[string]api.MemoryDefinitio
 		// Now, find out if it is exported
 		for name, exp := range m.module.Exports {
 			if exp.Type == ExternTypeMemory {
-				return map[string]api.MemoryDefinition{name: mem.definition}
+				return map[string]api.MemoryDefinition{name: mem.Definition()}
 			}
 		}
 	}

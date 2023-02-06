@@ -650,11 +650,12 @@ func paramNames(localNames IndirectNameMap, funcIdx uint32, paramLen int) []stri
 	return nil
 }
 
-func (m *Module) buildMemory() (mem *MemoryInstance) {
+func (m *Module) buildMemory() (mem api.Memory) {
 	memSec := m.MemorySection
 	if memSec != nil {
-		mem = NewMemoryInstance(memSec)
-		mem.definition = m.MemoryDefinitionSection[0]
+		inst := NewMemoryInstance(memSec)
+		inst.definition = m.MemoryDefinitionSection[0]
+		mem = inst
 	}
 	return
 }

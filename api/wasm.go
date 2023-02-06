@@ -564,6 +564,10 @@ type Memory interface {
 	RawBuffer() []byte
 
 	PageSize() (result uint32)
+
+	GetMin() uint32
+
+	GetMax() uint32
 }
 
 // CustomSection contains the name and raw data of a custom section.

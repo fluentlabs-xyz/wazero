@@ -62,7 +62,7 @@ type (
 		Functions []FunctionInstance
 		Globals   []*GlobalInstance
 		// Memory is set when Module.MemorySection had a memory, regardless of whether it was exported.
-		Memory *MemoryInstance
+		Memory api.Memory
 		Tables []*TableInstance
 
 		// CallCtx holds default function call context from this function instance.
@@ -143,7 +143,7 @@ type (
 const maximumFunctionTypes = 1 << 27
 
 // addSections adds section elements to the ModuleInstance
-func (m *ModuleInstance) addSections(module *Module, importedGlobals, globals []*GlobalInstance, tables []*TableInstance, memory, importedMemory *MemoryInstance) {
+func (m *ModuleInstance) addSections(module *Module, importedGlobals, globals []*GlobalInstance, tables []*TableInstance, memory, importedMemory api.Memory) {
 	m.Globals = append(importedGlobals, globals...)
 	m.Tables = tables
 
@@ -212,7 +212,7 @@ func (m *ModuleInstance) validateData(data []*DataSegment) (err error) {
 		if !d.IsPassive() {
 			offset := int(executeConstExpression(m.Globals, d.OffsetExpression).(int32))
 			ceil := offset + len(d.Init)
-			if offset < 0 || ceil > len(m.Memory.Buffer) {
+			if offset < 0 || ceil > len(m.Memory.RawBuffer()) {
 				return fmt.Errorf("%s[%d]: out of bounds memory access", SectionIDName(SectionIDData), i)
 			}
 		}
@@ -229,10 +229,10 @@ func (m *ModuleInstance) applyData(data []*DataSegment) error {
 		m.DataInstances[i] = d.Init
 		if !d.IsPassive() {
 			offset := executeConstExpression(m.Globals, d.OffsetExpression).(int32)
-			if offset < 0 || int(offset)+len(d.Init) > len(m.Memory.Buffer) {
+			if offset < 0 || int(offset)+len(d.Init) > len(m.Memory.RawBuffer()) {
 				return fmt.Errorf("%s[%d]: out of bounds memory access", SectionIDName(SectionIDData), i)
 			}
-			copy(m.Memory.Buffer[offset:], d.Init)
+			copy(m.Memory.RawBuffer()[offset:], d.Init)
 		}
 	}
 	return nil
@@ -347,6 +347,9 @@ func (s *Store) instantiate(
 
 	// Now we have all instances from imports and local ones, so ready to create a new ModuleInstance.
 	m.addSections(module, importedGlobals, globals, tables, importedMemory, memory)
+	if te, ok := m.Engine.(TracingEngine); ok {
+		m.Memory = te.WrapMemory(m.Memory)
+	}
 
 	// As of reference types proposal, data segment validation must happen after instantiation,
 	// and the side effect must persist even if there's out of bounds error after instantiation.
@@ -397,7 +400,7 @@ func resolveImports(module *Module, modules map[string]*ModuleInstance) (
 	importedFunctions []*FunctionInstance,
 	importedGlobals []*GlobalInstance,
 	importedTables []*TableInstance,
-	importedMemory *MemoryInstance,
+	importedMemory api.Memory,
 	err error,
 ) {
 	for idx, i := range module.ImportSection {
@@ -460,13 +463,13 @@ func resolveImports(module *Module, modules map[string]*ModuleInstance) (
 			expected := i.DescMem
 			importedMemory = m.Memory
 
-			if expected.Min > memoryBytesNumToPages(uint64(len(importedMemory.Buffer))) {
-				err = errorMinSizeMismatch(i, idx, expected.Min, importedMemory.Min)
+			if expected.Min > memoryBytesNumToPages(uint64(len(importedMemory.RawBuffer()))) {
+				err = errorMinSizeMismatch(i, idx, expected.Min, importedMemory.GetMin())
 				return
 			}
 
-			if expected.Max < importedMemory.Max {
-				err = errorMaxSizeMismatch(i, idx, expected.Max, importedMemory.Max)
+			if expected.Max < importedMemory.GetMax() {
+				err = errorMaxSizeMismatch(i, idx, expected.Max, importedMemory.GetMax())
 				return
 			}
 		case ExternTypeGlobal:

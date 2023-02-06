@@ -42,11 +42,11 @@ func NewEngine(_ context.Context, enabledFeatures api.CoreFeatures, _ filecache.
 	}
 }
 
-func NewEngineWithTracer(enabledFeatures api.CoreFeatures, traceFunction api.Tracer) wasm.Engine {
+func NewEngineWithTracer(enabledFeatures api.CoreFeatures, tracer api.Tracer) wasm.Engine {
 	return &engine{
 		enabledFeatures: enabledFeatures,
 		codes:           map[wasm.ModuleID][]*code{},
-		tracer:          traceFunction,
+		tracer:          tracer,
 	}
 }
 
@@ -82,6 +82,13 @@ func (e *engine) getCodes(module *wasm.Module) (fs []*code, ok bool) {
 	defer e.mux.RUnlock()
 	fs, ok = e.codes[module.ID]
 	return
+}
+
+func (e *moduleEngine) WrapMemory(memory api.Memory) api.Memory {
+	if e.parentEngine.tracer != nil {
+		memory = wasm.NewTraceMemory(memory)
+	}
+	return memory
 }
 
 // moduleEngine implements wasm.ModuleEngine
@@ -924,9 +931,6 @@ func (ce *callEngine) callNativeFunc(ctx context.Context, callCtx *wasm.CallCont
 		memoryInst = ce.callerMemory()
 	} else {
 		memoryInst = moduleInst.Memory
-	}
-	if ce.tracer != nil {
-		memoryInst = wasm.NewTraceMemory(memoryInst)
 	}
 	globals := moduleInst.Globals
 	tables := moduleInst.Tables
@@ -4217,7 +4221,7 @@ func (ce *callEngine) callNativeFunc(ctx context.Context, callCtx *wasm.CallCont
 }
 
 // callerMemory returns the caller context memory.
-func (ce *callEngine) callerMemory() *wasm.MemoryInstance {
+func (ce *callEngine) callerMemory() api.Memory {
 	// Search through the call frame stack from the top until we find a non host function.
 	for i := len(ce.frames) - 1; i >= 0; i-- {
 		f := ce.frames[i].f

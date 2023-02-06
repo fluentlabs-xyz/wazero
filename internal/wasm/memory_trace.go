@@ -115,3 +115,11 @@ func (m *TraceMemoryInstance) PeekMemoryChanges(drop bool) []api.MemoryChangeInf
 	}
 	return result
 }
+
+func (m *TraceMemoryInstance) GetMin() uint32 {
+	return m.del.GetMin()
+}
+
+func (m *TraceMemoryInstance) GetMax() uint32 {
+	return m.del.GetMax()
+}

@@ -981,7 +981,7 @@ func (ce *callEngine) builtinFunctionGrowStack(stackPointerCeil uint64) {
 	ce.stackContext.stackLenInBytes = newLen << 3
 }
 
-func (ce *callEngine) builtinFunctionMemoryGrow(mem *wasm.MemoryInstance) {
+func (ce *callEngine) builtinFunctionMemoryGrow(mem api.Memory) {
 	newPages := ce.popValue()
 
 	if res, ok := mem.Grow(uint32(newPages)); !ok {
@@ -991,7 +991,8 @@ func (ce *callEngine) builtinFunctionMemoryGrow(mem *wasm.MemoryInstance) {
 	}
 
 	// Update the moduleContext fields as they become stale after the update ^^.
-	bufSliceHeader := (*reflect.SliceHeader)(unsafe.Pointer(&mem.Buffer))
+	buffer := mem.RawBuffer()
+	bufSliceHeader := (*reflect.SliceHeader)(unsafe.Pointer(&buffer))
 	ce.moduleContext.memorySliceLen = uint64(bufSliceHeader.Len)
 	ce.moduleContext.memoryElement0Address = bufSliceHeader.Data
 }
