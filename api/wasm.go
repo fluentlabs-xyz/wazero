@@ -562,6 +562,8 @@ type Memory interface {
 	WriteString(offset uint32, v string) bool
 
 	RawBuffer() []byte
+
+	PageSize() (result uint32)
 }
 
 // CustomSection contains the name and raw data of a custom section.

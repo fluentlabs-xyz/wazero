@@ -919,11 +919,14 @@ func (ce *callEngine) callNativeFunc(ctx context.Context, callCtx *wasm.CallCont
 	frame := &callFrame{f: f}
 	moduleInst := f.source.Module
 	functions := moduleInst.Engine.(*moduleEngine).functions
-	var memoryInst *wasm.MemoryInstance
+	var memoryInst api.Memory
 	if f.parent.isHostFunction {
 		memoryInst = ce.callerMemory()
 	} else {
 		memoryInst = moduleInst.Memory
+	}
+	if ce.tracer != nil {
+		memoryInst = wasm.NewTraceMemory(memoryInst)
 	}
 	globals := moduleInst.Globals
 	tables := moduleInst.Tables
@@ -938,7 +941,15 @@ func (ce *callEngine) callNativeFunc(ctx context.Context, callCtx *wasm.CallCont
 
 		// trace operation before execution
 		if ce.tracer != nil {
-			ce.tracer.BeforeState(pc, op, ce.stack)
+			memoryTrace := memoryInst.(*wasm.TraceMemoryInstance)
+			memoryChanges := memoryTrace.PeekMemoryChanges(true)
+			if len(memoryChanges) > 1 {
+				panic("memory changes more than 1")
+			} else if len(memoryChanges) == 1 {
+				ce.tracer.BeforeState(pc, op, ce.stack, &memoryChanges[0])
+			} else {
+				ce.tracer.BeforeState(pc, op, ce.stack, nil)
+			}
 		}
 
 		// TODO: add description of each operation/case
@@ -1908,37 +1919,37 @@ func (ce *callEngine) callNativeFunc(ctx context.Context, callCtx *wasm.CallCont
 			inDataOffset := ce.popValue()
 			inMemoryOffset := ce.popValue()
 			if inDataOffset+copySize > uint64(len(dataInstance)) ||
-				inMemoryOffset+copySize > uint64(len(memoryInst.Buffer)) {
+				inMemoryOffset+copySize > uint64(len(memoryInst.RawBuffer())) {
 				panic(wasmruntime.ErrRuntimeOutOfBoundsMemoryAccess)
 			} else if copySize != 0 {
-				copy(memoryInst.Buffer[inMemoryOffset:inMemoryOffset+copySize], dataInstance[inDataOffset:])
+				copy(memoryInst.RawBuffer()[inMemoryOffset:inMemoryOffset+copySize], dataInstance[inDataOffset:])
 			}
 			frame.pc++
 		case wazeroir.OperationKindDataDrop:
 			dataInstances[op.us[0]] = nil
 			frame.pc++
 		case wazeroir.OperationKindMemoryCopy:
-			memLen := uint64(len(memoryInst.Buffer))
+			memLen := uint64(len(memoryInst.RawBuffer()))
 			copySize := ce.popValue()
 			sourceOffset := ce.popValue()
 			destinationOffset := ce.popValue()
 			if sourceOffset+copySize > memLen || destinationOffset+copySize > memLen {
 				panic(wasmruntime.ErrRuntimeOutOfBoundsMemoryAccess)
 			} else if copySize != 0 {
-				copy(memoryInst.Buffer[destinationOffset:],
-					memoryInst.Buffer[sourceOffset:sourceOffset+copySize])
+				copy(memoryInst.RawBuffer()[destinationOffset:],
+					memoryInst.RawBuffer()[sourceOffset:sourceOffset+copySize])
 			}
 			frame.pc++
 		case wazeroir.OperationKindMemoryFill:
 			fillSize := ce.popValue()
 			value := byte(ce.popValue())
 			offset := ce.popValue()
-			if fillSize+offset > uint64(len(memoryInst.Buffer)) {
+			if fillSize+offset > uint64(len(memoryInst.RawBuffer())) {
 				panic(wasmruntime.ErrRuntimeOutOfBoundsMemoryAccess)
 			} else if fillSize != 0 {
 				// Uses the copy trick for faster filling buffer.
 				// https://gist.github.com/taylorza/df2f89d5f9ab3ffd06865062a4cf015d
-				buf := memoryInst.Buffer[offset : offset+fillSize]
+				buf := memoryInst.RawBuffer()[offset : offset+fillSize]
 				buf[0] = value
 				for i := 1; i < len(buf); i *= 2 {
 					copy(buf[i:], buf[:i])
@@ -4191,7 +4202,15 @@ func (ce *callEngine) callNativeFunc(ctx context.Context, callCtx *wasm.CallCont
 
 		// trace operation after execution
 		if ce.tracer != nil {
-			ce.tracer.AfterState(pc, op, ce.stack)
+			memoryTrace := memoryInst.(*wasm.TraceMemoryInstance)
+			memoryChanges := memoryTrace.PeekMemoryChanges(false)
+			if len(memoryChanges) > 1 {
+				panic("memory changes more than 1")
+			} else if len(memoryChanges) == 1 {
+				ce.tracer.AfterState(pc, op, ce.stack, &memoryChanges[0])
+			} else {
+				ce.tracer.AfterState(pc, op, ce.stack, nil)
+			}
 		}
 	}
 	ce.popFrame()
