@@ -4,6 +4,7 @@ type OpCodeInfo interface {
 	String() string
 	Code() byte
 	GetParams() []uint64
+	Pc() uint64
 }
 
 type MemoryChangeInfo struct {

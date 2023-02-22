@@ -255,6 +255,10 @@ func (i *interpreterOp) GetParams() []uint64 {
 	return i.us
 }
 
+func (i *interpreterOp) Pc() uint64 {
+	return i.sourcePC
+}
+
 // interpreter mode doesn't maintain call frames in the stack, so pass the zero size to the IR.
 const callFrameStackSize = 0
 

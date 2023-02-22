@@ -298,7 +298,7 @@ func CompileFunctions(ctx context.Context, enabledFeatures api.CoreFeatures, cal
 			continue
 		}
 		r, err := compile(enabledFeatures, callFrameStackSizeInUint64, sig, code.Body,
-			code.LocalTypes, module.TypeSection, functions, globals, code.BodyOffsetInCodeSection, module.DWARFLines != nil)
+			code.LocalTypes, module.TypeSection, functions, globals, code.BodyOffsetInCodeSection, true)
 		if err != nil {
 			def := module.FunctionDefinitionSection[uint32(funcIndex)+module.ImportFuncCount()]
 			return nil, fmt.Errorf("failed to lower func[%s] to wazeroir: %w", def.DebugName(), err)
