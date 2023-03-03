@@ -80,6 +80,7 @@ type (
 		//
 		// https://www.w3.org/TR/2022/WD-wasm-core-2-20220419/exec/runtime.html#data-instances
 		DataInstances []DataInstance
+		DataOffsets   []DataOffset
 
 		// ElementInstances holds the element instance, and each holds the references to either functions
 		// or external objects (unimplemented).
@@ -90,6 +91,7 @@ type (
 	//
 	// https://www.w3.org/TR/2022/WD-wasm-core-2-20220419/exec/runtime.html#data-instances
 	DataInstance = []byte
+	DataOffset   = uint32
 
 	// ExportInstance represents an exported instance in a Store.
 	// The difference from the spec is that in wazero, a ExportInstance holds pointers
@@ -225,14 +227,18 @@ func (m *ModuleInstance) validateData(data []*DataSegment) (err error) {
 // bounds memory access error here is not a validation error, but rather a runtime error.
 func (m *ModuleInstance) applyData(data []*DataSegment) error {
 	m.DataInstances = make([][]byte, len(data))
+	m.DataOffsets = make([]uint32, len(data))
 	for i, d := range data {
-		m.DataInstances[i] = d.Init
 		if !d.IsPassive() {
 			offset := executeConstExpression(m.Globals, d.OffsetExpression).(int32)
 			if offset < 0 || int(offset)+len(d.Init) > len(m.Memory.RawBuffer()) {
 				return fmt.Errorf("%s[%d]: out of bounds memory access", SectionIDName(SectionIDData), i)
 			}
 			copy(m.Memory.RawBuffer()[offset:], d.Init)
+			m.DataInstances[i] = d.Init
+			m.DataOffsets[i] = DataOffset(offset)
+		} else {
+			return fmt.Errorf("dynamic init memory is not supported yet")
 		}
 	}
 	return nil

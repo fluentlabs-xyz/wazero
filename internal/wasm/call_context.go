@@ -105,6 +105,17 @@ func (m *CallContext) CloseWithExitCode(ctx context.Context, exitCode uint32) er
 	return err
 }
 
+func (m *CallContext) DataInstances() map[uint32]DataInstance {
+	res := make(map[uint32]DataInstance)
+	if len(m.module.DataInstances) != len(m.module.DataOffsets) {
+		panic("len diff between data instances and data offsets it not possible")
+	}
+	for i := range m.module.DataInstances {
+		res[m.module.DataOffsets[i]] = m.module.DataInstances[i]
+	}
+	return res
+}
+
 // close marks this CallContext as closed and releases underlying system resources.
 //
 // Note: The caller is responsible for removing the module from the Store.

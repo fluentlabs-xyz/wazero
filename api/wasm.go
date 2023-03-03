@@ -182,6 +182,8 @@ type Module interface {
 	// with the exitCode.
 	CloseWithExitCode(ctx context.Context, exitCode uint32) error
 
+	DataInstances() map[uint32][]byte
+
 	// Closer closes this module by delegating to CloseWithExitCode with an exit code of zero.
 	Closer
 }
