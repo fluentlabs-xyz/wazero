@@ -533,7 +533,11 @@ func (m *Module) validateFunctionWithMaxStackValues(
 			}
 			pc += num - 1
 			if int(index) >= len(functions) {
-				return fmt.Errorf("invalid function index")
+				return fmt.Errorf("invalid function index (%d)", index)
+			}
+			typeIndex := functions[index]
+			if int(typeIndex) >= len(types) {
+				return fmt.Errorf("invalid type index (%d)", typeIndex)
 			}
 			funcType := types[functions[index]]
 			for i := 0; i < len(funcType.Params); i++ {
