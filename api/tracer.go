@@ -13,6 +13,8 @@ type MemoryChangeInfo struct {
 }
 
 type Tracer interface {
-	BeforeState(pc uint64, opcode OpCodeInfo, stack []uint64, memory *MemoryChangeInfo)
-	AfterState(pc uint64, opcode OpCodeInfo, stack []uint64, memory *MemoryChangeInfo)
+	GlobalVariable(relativePc uint64, opcode OpCodeInfo, value uint64)
+
+	BeforeState(relativePc uint64, opcode OpCodeInfo, stack []uint64, memory *MemoryChangeInfo)
+	AfterState(relativePc uint64, opcode OpCodeInfo, stack []uint64, memory *MemoryChangeInfo)
 }

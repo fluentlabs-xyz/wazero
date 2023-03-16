@@ -349,7 +349,8 @@ func (s *Store) instantiate(
 		return nil, err
 	}
 
-	globals, memory := module.buildGlobals(importedGlobals, m.Engine.FunctionInstanceReference), module.buildMemory()
+	tracer := s.Engine.GetTracer()
+	globals, memory := module.buildGlobalsWithTracer(importedGlobals, m.Engine.FunctionInstanceReference, tracer), module.buildMemory()
 
 	// Now we have all instances from imports and local ones, so ready to create a new ModuleInstance.
 	m.addSections(module, importedGlobals, globals, tables, importedMemory, memory)

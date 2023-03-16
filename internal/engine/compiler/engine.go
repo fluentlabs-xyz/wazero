@@ -491,6 +491,10 @@ func (e *engine) Close() (err error) {
 	return
 }
 
+func (e *engine) GetTracer() api.Tracer {
+	return nil
+}
+
 // CompileModule implements the same method as documented on wasm.Engine.
 func (e *engine) CompileModule(ctx context.Context, module *wasm.Module, listeners []experimental.FunctionListener) error {
 	if _, ok, err := e.getCodes(module); ok { // cache hit!

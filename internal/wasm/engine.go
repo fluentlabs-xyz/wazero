@@ -32,6 +32,8 @@ type Engine interface {
 	// Note: Input parameters must be pre-validated with wasm.Module Validate, to ensure no fields are invalid
 	// due to reasons such as out-of-bounds.
 	NewModuleEngine(name string, module *Module, functions []FunctionInstance) (ModuleEngine, error)
+
+	GetTracer() api.Tracer
 }
 
 type TracingEngine interface {

@@ -84,6 +84,10 @@ func (e *engine) getCodes(module *wasm.Module) (fs []*code, ok bool) {
 	return
 }
 
+func (e *engine) GetTracer() api.Tracer {
+	return e.tracer
+}
+
 func (e *moduleEngine) WrapMemory(memory api.Memory) api.Memory {
 	if e.parentEngine.tracer != nil {
 		memory = wasm.NewTraceMemory(memory)

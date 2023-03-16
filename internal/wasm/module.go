@@ -572,6 +572,31 @@ func (m *Module) validateDataCountSection() (err error) {
 }
 
 func (m *Module) buildGlobals(importedGlobals []*GlobalInstance, funcRefResolver func(funcIndex Index) Reference) (globals []*GlobalInstance) {
+	return m.buildGlobalsWithTracer(importedGlobals, funcRefResolver, nil)
+}
+
+type globalOpCode struct {
+	opcode byte
+	pc     uint64
+}
+
+func (g *globalOpCode) String() string {
+	return ""
+}
+
+func (g *globalOpCode) Code() byte {
+	return g.opcode
+}
+
+func (g *globalOpCode) GetParams() []uint64 {
+	return []uint64{}
+}
+
+func (g *globalOpCode) Pc() uint64 {
+	return g.pc
+}
+
+func (m *Module) buildGlobalsWithTracer(importedGlobals []*GlobalInstance, funcRefResolver func(funcIndex Index) Reference, tracer api.Tracer) (globals []*GlobalInstance) {
 	globals = make([]*GlobalInstance, len(m.GlobalSection))
 	for i, gs := range m.GlobalSection {
 		g := &GlobalInstance{Type: gs.Type}
@@ -594,6 +619,9 @@ func (m *Module) buildGlobals(importedGlobals []*GlobalInstance, funcRefResolver
 			g.Val, g.ValHi = v[0], v[1]
 		default:
 			panic(fmt.Errorf("BUG: invalid conversion %d", v))
+		}
+		if tracer != nil {
+			tracer.GlobalVariable(uint64(i), &globalOpCode{opcode: gs.Init.Opcode, pc: gs.Pc}, g.Val)
 		}
 		globals[i] = g
 	}
@@ -802,6 +830,7 @@ type GlobalType struct {
 type Global struct {
 	Type *GlobalType
 	Init *ConstantExpression
+	Pc   uint64
 }
 
 type ConstantExpression struct {

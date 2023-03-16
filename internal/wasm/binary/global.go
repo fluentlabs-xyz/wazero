@@ -17,12 +17,15 @@ func decodeGlobal(r *bytes.Reader, enabledFeatures api.CoreFeatures) (*wasm.Glob
 		return nil, err
 	}
 
+	// calc relative PC for global instruction
+	pc := uint64(r.Size()) - uint64(r.Len())
+
 	init, err := decodeConstantExpression(r, enabledFeatures)
 	if err != nil {
 		return nil, err
 	}
 
-	return &wasm.Global{Type: gt, Init: init}, nil
+	return &wasm.Global{Type: gt, Init: init, Pc: pc}, nil
 }
 
 // decodeGlobalType returns the wasm.GlobalType decoded with the WebAssembly 1.0 (20191205) Binary Format.
