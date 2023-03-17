@@ -7,6 +7,10 @@ type OpCodeInfo interface {
 	Pc() uint64
 }
 
+type OpCodeDrop interface {
+	Drop() uint32
+}
+
 type MemoryChangeInfo struct {
 	Offset uint32
 	Value  []byte

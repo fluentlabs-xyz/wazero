@@ -264,6 +264,21 @@ func (i *interpreterOp) Pc() uint64 {
 	return i.sourcePC
 }
 
+func (i *interpreterOp) Drop() uint32 {
+	if len(i.rs) > 1 {
+		panic("not sure what to do here, lets just panic")
+	} else if len(i.rs) == 0 {
+		return 0
+	}
+	ir := i.rs[0]
+	if ir == nil {
+		return 0
+	} else if ir.Start == ir.End {
+		return 0
+	}
+	return uint32(ir.End - ir.Start + 1)
+}
+
 // interpreter mode doesn't maintain call frames in the stack, so pass the zero size to the IR.
 const callFrameStackSize = 0
 

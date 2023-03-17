@@ -3076,19 +3076,19 @@ func (c *compiler) emitDefaultValue(t wasm.ValueType) {
 	switch t {
 	case wasm.ValueTypeI32:
 		c.stackPush(UnsignedTypeI32)
-		c.emitUntraceable(&OperationConstI32{Value: 0})
+		c.emit(&OperationConstI32{Value: 0})
 	case wasm.ValueTypeI64, wasm.ValueTypeExternref, wasm.ValueTypeFuncref:
 		c.stackPush(UnsignedTypeI64)
-		c.emitUntraceable(&OperationConstI64{Value: 0})
+		c.emit(&OperationConstI64{Value: 0})
 	case wasm.ValueTypeF32:
 		c.stackPush(UnsignedTypeF32)
-		c.emitUntraceable(&OperationConstF32{Value: 0})
+		c.emit(&OperationConstF32{Value: 0})
 	case wasm.ValueTypeF64:
 		c.stackPush(UnsignedTypeF64)
-		c.emitUntraceable(&OperationConstF64{Value: 0})
+		c.emit(&OperationConstF64{Value: 0})
 	case wasm.ValueTypeV128:
 		c.stackPush(UnsignedTypeV128)
-		c.emitUntraceable(&OperationV128Const{Hi: 0, Lo: 0})
+		c.emit(&OperationV128Const{Hi: 0, Lo: 0})
 	}
 }
 
