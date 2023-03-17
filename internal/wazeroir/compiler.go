@@ -219,6 +219,9 @@ type CompilationResult struct {
 	Operations []Operation
 	OpCodes    []byte
 
+	// IsUnTraceable stores info about untraceable opcodes by their source PC
+	IsUnTraceable map[uint64]bool
+
 	// IROperationSourceOffsetsInWasmBinary is index-correlated with Operation and maps each operation to the corresponding source instruction's
 	// offset in the original WebAssembly binary.
 	// Non nil only when the given Wasm module has the DWARF section.
@@ -3008,6 +3011,35 @@ func (c *compiler) stackPush(ts UnsignedType) {
 }
 
 // emit adds the operations into the result.
+func (c *compiler) emitUntraceable(ops ...Operation) {
+	if !c.unreachableState.on {
+		for _, op := range ops {
+			switch o := op.(type) {
+			case *OperationDrop:
+				// If the drop range is nil,
+				// we could remove such operations.
+				// That happens when drop operation is unnecessary.
+				// i.e. when there's no need to adjust stack before jmp.
+				if o.Depth == nil {
+					continue
+				}
+			}
+			opcode := c.body[c.currentOpPC]
+			c.result.Operations = append(c.result.Operations, op)
+			c.result.OpCodes = append(c.result.OpCodes, opcode)
+			if c.needSourceOffset {
+				c.result.IROperationSourceOffsetsInWasmBinary = append(c.result.IROperationSourceOffsetsInWasmBinary,
+					c.currentOpPC+c.bodyOffsetInCodeSection)
+				c.result.IsUnTraceable[c.currentOpPC+c.bodyOffsetInCodeSection] = true
+			}
+			if false {
+				fmt.Printf("emitting ")
+				formatOperation(os.Stdout, op)
+			}
+		}
+	}
+}
+
 func (c *compiler) emit(ops ...Operation) {
 	if !c.unreachableState.on {
 		for _, op := range ops {
@@ -3041,19 +3073,19 @@ func (c *compiler) emitDefaultValue(t wasm.ValueType) {
 	switch t {
 	case wasm.ValueTypeI32:
 		c.stackPush(UnsignedTypeI32)
-		c.emit(&OperationConstI32{Value: 0})
+		c.emitUntraceable(&OperationConstI32{Value: 0})
 	case wasm.ValueTypeI64, wasm.ValueTypeExternref, wasm.ValueTypeFuncref:
 		c.stackPush(UnsignedTypeI64)
-		c.emit(&OperationConstI64{Value: 0})
+		c.emitUntraceable(&OperationConstI64{Value: 0})
 	case wasm.ValueTypeF32:
 		c.stackPush(UnsignedTypeF32)
-		c.emit(&OperationConstF32{Value: 0})
+		c.emitUntraceable(&OperationConstF32{Value: 0})
 	case wasm.ValueTypeF64:
 		c.stackPush(UnsignedTypeF64)
-		c.emit(&OperationConstF64{Value: 0})
+		c.emitUntraceable(&OperationConstF64{Value: 0})
 	case wasm.ValueTypeV128:
 		c.stackPush(UnsignedTypeV128)
-		c.emit(&OperationV128Const{Hi: 0, Lo: 0})
+		c.emitUntraceable(&OperationV128Const{Hi: 0, Lo: 0})
 	}
 }
 
