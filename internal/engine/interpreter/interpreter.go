@@ -238,13 +238,14 @@ func functionFromUintptr(ptr uintptr) *function {
 // only relevant when in context of its kind.
 type interpreterOp struct {
 	// kind determines how to interpret the other fields in this struct.
-	kind     wazeroir.OperationKind
-	b1, b2   byte
-	b3       bool
-	us       []uint64
-	rs       []*wazeroir.InclusiveRange
-	sourcePC uint64
-	opcode   byte
+	kind        wazeroir.OperationKind
+	b1, b2      byte
+	b3          bool
+	us          []uint64
+	rs          []*wazeroir.InclusiveRange
+	sourcePC    uint64
+	opcode      byte
+	untraceable bool
 }
 
 func (i *interpreterOp) Code() byte {
@@ -347,6 +348,9 @@ func (e *engine) lowerIR(ir *wazeroir.CompilationResult) (*code, error) {
 		op := &interpreterOp{kind: original.Kind(), opcode: opcodes[i]}
 		if hasSourcePCs {
 			op.sourcePC = ir.IROperationSourceOffsetsInWasmBinary[i]
+			if ir.IsUnTraceable[op.sourcePC] {
+				op.untraceable = true
+			}
 		}
 		switch o := original.(type) {
 		case *wazeroir.OperationUnreachable:
@@ -952,7 +956,8 @@ func (ce *callEngine) callNativeFunc(ctx context.Context, callCtx *wasm.CallCont
 		pc, op := frame.pc, body[frame.pc]
 
 		// trace operation before execution
-		if ce.tracer != nil {
+		if ce.tracer != nil && !op.untraceable {
+			//op.sourcePC;
 			memoryTrace := memoryInst.(*wasm.TraceMemoryInstance)
 			memoryChanges := memoryTrace.PeekMemoryChanges(true)
 			if len(memoryChanges) > 1 {
@@ -4213,7 +4218,7 @@ func (ce *callEngine) callNativeFunc(ctx context.Context, callCtx *wasm.CallCont
 		}
 
 		// trace operation after execution
-		if ce.tracer != nil {
+		if ce.tracer != nil && !op.untraceable {
 			memoryTrace := memoryInst.(*wasm.TraceMemoryInstance)
 			memoryChanges := memoryTrace.PeekMemoryChanges(false)
 			if len(memoryChanges) > 1 {
