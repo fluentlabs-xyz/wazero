@@ -3030,6 +3030,9 @@ func (c *compiler) emitUntraceable(ops ...Operation) {
 			if c.needSourceOffset {
 				c.result.IROperationSourceOffsetsInWasmBinary = append(c.result.IROperationSourceOffsetsInWasmBinary,
 					c.currentOpPC+c.bodyOffsetInCodeSection)
+				if c.result.IsUnTraceable == nil {
+					c.result.IsUnTraceable = make(map[uint64]bool)
+				}
 				c.result.IsUnTraceable[c.currentOpPC+c.bodyOffsetInCodeSection] = true
 			}
 			if false {
