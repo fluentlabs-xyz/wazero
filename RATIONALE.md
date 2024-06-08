@@ -47,7 +47,7 @@ dependency.
 
 ## Project structure
 
-wazero uses internal packages extensively to balance API compatability desires for end users with the need to safely
+wazero uses internal packages extensively to balance API compatibility desires for end users with the need to safely
 share internals between compilers.
 
 End-user packages include `wazero`, with `Config` structs, `api`, with shared types, and the built-in `wasi` library.
@@ -281,7 +281,7 @@ if err != nil {
 }
 ```
 
-### Why aren't configuration assigned with option types?
+### Why aren't configurations assigned with option types?
 The option pattern is a familiar one in Go. For example, someone defines a type `func (x X) err` and uses it to update
 the target. For example, you could imagine wazero could choose to make `ModuleConfig` from options vs chaining fields.
 
@@ -469,7 +469,7 @@ is enforced to be the correct signature and succeed, but the export itself isn't
 exports are not required to be contained to a "_start" function invocation. Finally, the "__indirect_function_table"
 export is also not enforced.
 
-The reason for the exceptions are that implementations aren't following the rules. For example, TinyGo doesn't export
+The reason for the exceptions is that implementations aren't following the rules. For example, TinyGo doesn't export
 "__indirect_function_table", so crashing on this would make wazero unable to run TinyGo modules. Similarly, modules
 loaded by wapc-go don't always define a "_start" function. Since "snapshot-01" is not a proper version, and certainly
 not a W3C recommendation, there's no sense in breaking users over matters like this.
@@ -518,7 +518,7 @@ write to console, as they can define their own host functions, such as they did 
 
 wazero aims to serve Go developers as a primary function, and help them transition between WASI specifications. In
 order to do this, we have to allow top-level configuration. To ensure isolation by default, `ModuleConfig` has WithXXX
-that override defaults to no-op or empty. One `ModuleConfig` instance is used regardless of how many times the same WASI
+that overrides defaults to no-op or empty. One `ModuleConfig` instance is used regardless of how many times the same WASI
 functions are imported. The nil defaults allow safe concurrency in these situations, as well lower the cost when they
 are never used. Finally, a one-to-one mapping with `Module` allows the module to close the `ModuleConfig` instead of
 confusing users with another API to close.
@@ -538,7 +538,7 @@ act differently and document `ModuleConfig` is more about emulating, not necessa
 
 An early design of wazero's API included a `WithWorkDirFS` which allowed
 control over which file a relative path such as "./config.yml" resolved to,
-independent of the root file system. This intended to help separate concerns
+independent of the root file system. This was intended to help separate concerns
 like mutability of files, but it didn't work and was removed.
 
 Compilers that target wasm act differently with regard to the working
@@ -600,7 +600,7 @@ by unix systems: when opening a file, the lowest unused number is picked.
 The WASI standard documents that programs cannot expect that file descriptor
 numbers will be allocated with a lowest-first strategy, and they should instead
 assume the values will be random. Since _random_ is a very imprecise concept in
-computers, we technically satisfying the implementation with the descriptor
+computers, we technically satisfy the implementation with the descriptor
 allocation strategy we use in Wazero. We could imagine adding more _randomness_
 to the descriptor selection process, however this should never be used as a
 security measure to prevent applications from guessing the next file number so
@@ -804,7 +804,7 @@ This is due to the same reason for the limitation on the number of functions abo
 
 While the the spec does not clarify a limitation of function stack values, wazero limits this to 2^27 = 134,217,728.
 The reason is that we internally represent all the values as 64-bit integers regardless of its types (including f32, f64), and 2^27 values means
-1 GiB = (2^30). 1 GiB is the reasonable for most applications [as we see a Goroutine has 250 MB as a limit on the stack for 32-bit arch](https://github.com/golang/go/blob/f296b7a6f045325a230f77e9bda1470b1270f817/src/runtime/proc.go#L120), considering that WebAssembly is (currently) 32-bit environment.
+1 GiB = (2^30). 1 GiB is reasonable for most applications [as we see a Goroutine has 250 MB as a limit on the stack for 32-bit arch](https://github.com/golang/go/blob/f296b7a6f045325a230f77e9bda1470b1270f817/src/runtime/proc.go#L120), considering that WebAssembly is (currently) 32-bit environment.
 
 All the functions are statically analyzed at module instantiation phase, and if a function can potentially reach this limit, an error is returned.
 
